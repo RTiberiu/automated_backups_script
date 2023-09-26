@@ -1,9 +1,11 @@
 {
     "source_directories": [
-        "D:\\Backups\\Images and Videos",
-        "D:\\Backups\\Placement (Year III)"
+        "D:\\University",
+        "D:\\Studies",
+        "D:\\Backups\\Images and Videos"
     ],
-    "backup_directory": "D:\\Backups\\Actual Backups",
-    "history_log": "D:\\Backups\\backup_history_log.csv",
+    "backup_directory": "D:\\Backups database\\Backups",
+    "recover_directory": "D:\\Backups database\\Recovery",
+    "history_log": "D:\\Backups database\\Backups\\backup_history_log.csv",
     "max_backups": 3
 }

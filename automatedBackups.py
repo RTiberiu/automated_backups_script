@@ -296,5 +296,4 @@ def main():
     formatted_time = format_time(elapsed_time)
     print(f'\n\nTotal running time: {formatted_time}\n\nBackups created: {backups_created}\nFolders checked: {folders_checked}\n')
 
-
 main()

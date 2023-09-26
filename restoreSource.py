@@ -193,9 +193,31 @@ def restore_time_capsule(source_dir, date):
     backup_folder_name = source_folder_name
     backup_folder_path = os.path.join(config_data['backup_directory'], backup_folder_name)
 
+    def _restore_date_matching_backup_path(directory ,date):
+        restore = False
+        path = None
+        formatted_date = datetime.strptime(date, "%d %B %Y").date()
+        files_in_path = list_only_files_without_hidden(directory)
+
+        # Cycle through backup files in the current folder
+        for file in files_in_path:
+            full_file_path = os.path.join(directory, file)
+            creation_time = os.path.getctime(full_file_path)
+            creation_date = datetime.fromtimestamp(creation_time).date()
+
+            # If file creation date matches given date
+            if formatted_date < creation_date or formatted_date == creation_date:
+                restore = True
+                path = full_file_path
+                break
+        
+        return restore, path
+
+
     def _check_if_path_is_active_for_date(path, date):
-        path_should_be_restored = True
-        found_record = False
+        path_should_be_restored = False
+        path_to_restore = None
+
         with open(config_data['history_log'], mode='r') as file:
             csv_reader = csv.reader(file)
             rows = list(csv_reader)
@@ -204,42 +226,71 @@ def restore_time_capsule(source_dir, date):
             rows.reverse()
 
             # Restore path if there are no records in the log
-            print(f'rows: {rows}')
             if not rows:
-                path_should_be_restored = True
-            
-            # Iterate through each row in the reversed list
-            for row in rows:
-                # Get the last record in the CSV]
-                if row and row[0] == path:
-                    date = row[1].split(' ')[0:3]
-                    print(f'XX date: {date}')
-
-                    # Find a zipfile that matches the date 
+                path_should_be_restored, path_to_restore = _restore_date_matching_backup_path(path, date)
+            else:
+                # Iterate through each row in the reversed list
+                for row in rows:
+                    # Get the last record in the CSV
+                    if row and row[0] == path:
+                        date_arr = row[1].split(' ')[0:3]
+                        row_date = ' '.join(date_arr)
                     
-                    # Get files in the current folder path
-                    files_in_path = list_only_files_without_hidden(path)
-                    print(f'files_in_path: {files_in_path}')
-                    # see if it's 1 and the date matches
-                    # if date[3] == '1':
-                        
-                    # TODO Validate if it should be restored depending on the date and on the flag
-                    # Reminder: 0 means it shouldn't be restored
-                    #           1 means it should be restored
-                    found_record = True
-                    path_should_be_restored = True
-                    # last_record = row
+                        if row[2] == '1':
+                            files_in_path = list_only_files_without_hidden(path)
+                            
+                            # Cycle through backup files in the current folder
+                            for file in files_in_path:
+                                full_file_path = os.path.join(path, file)
+                                # print(f'full_file_path: {full_file_path}')
+                                creation_time = os.path.getctime(full_file_path)
+                                creation_date = datetime.fromtimestamp(creation_time)
+                                formatted_date = creation_date.strftime('%d %B %Y')
+                                formatted_row_date = datetime.strptime(row_date, "%d %B %Y")
 
-        return path_should_be_restored
+                                # If csv record date and file date match, restore
+                                if formatted_row_date < formatted_date or formatted_row_date == formatted_date:
+                                    path_should_be_restored = True
+                                    path_to_restore = full_file_path
+                                    break
+
+                        # Exit early if found the record
+                        if path_should_be_restored:
+                            break
+                
+                # Get latest backup if nothing was found in the loop
+                if not path_should_be_restored:
+                    path_should_be_restored, path_to_restore = _restore_date_matching_backup_path(path, date)
+        
+        return path_should_be_restored, path_to_restore
         
     # Traverse to all subfolders and restore backups
     def _restore_backup_for_current_folder(current_folder, date):
         global backups_combined
 
         # Check if current folder needs to be restored
-        restore_path = _check_if_path_is_active_for_date(current_folder, date)
-        print(f'restore_path: {restore_path}')
+        restore_file, path_to_restore = _check_if_path_is_active_for_date(current_folder, date)
 
+        # Restore files for current folder
+        if restore_file:
+            recover_full_path = current_folder.replace(config_data['backup_directory'], config_data['recover_directory'])
+
+            # Check if the target directory exists; if not, create it
+            if not os.path.exists(recover_full_path):
+                os.makedirs(recover_full_path)
+            try:
+                # Open the zip file
+                with zipfile.ZipFile(path_to_restore, 'r') as zip_ref:
+                    # Extract all the contents of the zip file to the target directory
+                    zip_ref.extractall(recover_full_path)
+            except zipfile.BadZipFile:
+                print(f'The file {path_to_restore} is not a valid zip archive.')
+            except FileNotFoundError:
+                print(f'The file {path_to_restore} does not exist.')
+            except Exception as e:
+                print(f'An error occurred: {str(e)}')
+        
+        # Traverse to lower folder levels
         for subfolder in list_files_without_hidden(current_folder):
             full_backup_path = os.path.join(current_folder,subfolder)
             if not os.path.isfile(full_backup_path):
@@ -308,10 +359,27 @@ def create_backup_for_folders(source_dir):
 
     cycle_through_subfolders(source_dir)
 
+def delete_folder_content(directory):
+    try:
+        for item in os.listdir(directory):
+            item_path = os.path.join(directory, item)
+            if os.path.isfile(item_path):
+                os.unlink(item_path)
+            elif os.path.isdir(item_path):
+                shutil.rmtree(item_path)
+    except FileNotFoundError:
+        print(f'The folder {directory} does not exist.')
+    except Exception as e:
+        print(f'An error occurred: {str(e)}')
+
 def main():
-    # restore_path, date = prompt_user_for_data()
-    restore_path, date = 'D:\Backups\Placement (Year III)', '25 September 2023'
-    print(f'restore_path: {restore_path}, date: {date}')
+    # Clean the recovery folder
+    delete_folder_content(config_data['recover_directory'])
+
+    restore_path, date = prompt_user_for_data()
+    # restore_path, date = 'D:\Backups\Images and Videos', '25 September 2023'
     restore_time_capsule(restore_path, date)
     
+    print(f'\nPlease find your recoved file in the folder: {config_data["recover_directory"]}.\nThe folder should be moved to another location, as the scripts cleans the Recovery folder to avoid conflicts.\n')
+
 main()
