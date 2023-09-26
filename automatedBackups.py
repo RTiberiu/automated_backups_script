@@ -257,7 +257,7 @@ def mark_extra_folders_in_backup(source_dir):
 
                 # Traverse to a deeper level                
                 _traverse__backup_subfolders_and_log_extra_folders(full_backup_path)
-
+                
     _traverse__backup_subfolders_and_log_extra_folders(backup_folder_path)
     return True
 

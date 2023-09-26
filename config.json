@@ -1,10 +1,9 @@
 {
     "source_directories": [
-        "X:\\Studies\\automated_backups\\source",
-        "X:\\Studies\\automated_backups\\source2",
-        "X:\\University"
+        "D:\\Backups\\Images and Videos",
+        "D:\\Backups\\Placement (Year III)"
     ],
-    "backup_directory": "X:\\Studies\\automated_backups\\destination_2",
-    "history_log": "X:\\Studies\\automated_backups\\backup_history_log.csv",
+    "backup_directory": "D:\\Backups\\Actual Backups",
+    "history_log": "D:\\Backups\\backup_history_log.csv",
     "max_backups": 3
 }
