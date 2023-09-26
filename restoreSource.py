@@ -184,13 +184,17 @@ def list_files_without_hidden(folder_path):
     # Get all files in the current folder, excluding hidden files
     return [f for f in os.listdir(folder_path) if not f.startswith('.')]
 
+def list_only_files_without_hidden(folder_path):
+    # Get only files in the current folder, excluding hidden files
+    return [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and not f.startswith('.')]
+
 def restore_time_capsule(source_dir, date):
     source_folder_name = os.path.basename(source_dir)
     backup_folder_name = source_folder_name
     backup_folder_path = os.path.join(config_data['backup_directory'], backup_folder_name)
 
     def _check_if_path_is_active_for_date(path, date):
-        path_should_be_restored = False
+        path_should_be_restored = True
         found_record = False
         with open(config_data['history_log'], mode='r') as file:
             csv_reader = csv.reader(file)
@@ -210,7 +214,15 @@ def restore_time_capsule(source_dir, date):
                 if row and row[0] == path:
                     date = row[1].split(' ')[0:3]
                     print(f'XX date: {date}')
+
+                    # Find a zipfile that matches the date 
                     
+                    # Get files in the current folder path
+                    files_in_path = list_only_files_without_hidden(path)
+                    print(f'files_in_path: {files_in_path}')
+                    # see if it's 1 and the date matches
+                    # if date[3] == '1':
+                        
                     # TODO Validate if it should be restored depending on the date and on the flag
                     # Reminder: 0 means it shouldn't be restored
                     #           1 means it should be restored
