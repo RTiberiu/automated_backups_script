@@ -161,7 +161,7 @@ def create_backup_for_folders(source_dir):
         if needed_backup:
             # Get zip file name and path
             zip_file_name = f'Backup {source_folder_name} {backup_timestamp}.zip'
-            zip_file_path = f'{backup_subfolder}\{zip_file_name}'
+            zip_file_path = rf'{backup_subfolder}\{zip_file_name}' # Using raw string literal to escape \
             
             # Create a zipfile backup for the files in the folder only
             backups_created += 1
@@ -274,9 +274,19 @@ def loading_animation():
         time.sleep(0.5)
         num_dots = (num_dots + 1) % 4
 
+def print_directories_info():
+    print("\nCreating backups for the following directories: \n")
+
+    # Display directories being backed up from config_data
+    for index, item in enumerate(config_data['source_directories']):
+        print(f"{index + 1}. {item}") 
+    print('\n')
+
 def main():
     global loading_animation_running
     script_timer = datetime.now()
+
+    print_directories_info()
 
     # Start the loading animation in a separate thread
     loading_thread = threading.Thread(target=loading_animation)

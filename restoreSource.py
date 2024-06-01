@@ -333,7 +333,7 @@ def create_backup_for_folders(source_dir):
         if needed_backup:
             # Get zip file name and path
             zip_file_name = f'Backup {source_folder_name} {backup_timestamp}.zip'
-            zip_file_path = f'{backup_subfolder}\{zip_file_name}'
+            zip_file_path = rf'{backup_subfolder}\{zip_file_name}'
             
             # Create a zipfile backup for the files in the folder only
             backups_created += 1
