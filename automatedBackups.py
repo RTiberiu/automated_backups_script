@@ -294,9 +294,13 @@ def main():
 
     # Cycle through all the source directories
     for source_dir in config_data['source_directories']:
-        create_source_folder_structure(source_dir)
-        mark_extra_folders_in_backup(source_dir)
-        create_backup_for_folders(source_dir)
+        # Validate source_dir existence
+        if os.path.exists(source_dir):
+            create_source_folder_structure(source_dir)
+            mark_extra_folders_in_backup(source_dir)
+            create_backup_for_folders(source_dir)
+        else:
+            print(f"\n\nERROR: Directory doesn't exist: {source_dir}")
 
     # Stop the loading animation
     loading_animation_running = False
