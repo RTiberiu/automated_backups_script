@@ -282,32 +282,48 @@ def print_directories_info():
         print(f"{index + 1}. {item}") 
     print('\n')
 
+def are_config_directories_valid():
+    # Cycle through all the source directories
+    for source_dir in config_data['source_directories']:
+        if not os.path.exists(source_dir):
+            print(f"ERROR: Source directory doesn't exist: {source_dir}")
+            return False
+    
+    # Validate the other backup directories
+    backup_directories = [config_data['backup_directory'],
+                          config_data['recover_directory']
+                          ]
+
+    for backup_dir in backup_directories:
+        if not os.path.exists(backup_dir):
+            print(f"ERROR: Backup directory doesn't exist: {backup_dir}")
+            return False
+
+    return True
+
 def main():
     global loading_animation_running
     script_timer = datetime.now()
 
     print_directories_info()
 
-    # Start the loading animation in a separate thread
-    loading_thread = threading.Thread(target=loading_animation)
-    loading_thread.start()
+    if are_config_directories_valid():
+        # Start the loading animation in a separate thread
+        loading_thread = threading.Thread(target=loading_animation)
+        loading_thread.start()
 
-    # Cycle through all the source directories
-    for source_dir in config_data['source_directories']:
-        # Validate source_dir existence
-        if os.path.exists(source_dir):
+        # Cycle through all the source directories
+        for source_dir in config_data['source_directories']:
             create_source_folder_structure(source_dir)
             mark_extra_folders_in_backup(source_dir)
             create_backup_for_folders(source_dir)
-        else:
-            print(f"\n\nERROR: Directory doesn't exist: {source_dir}")
 
-    # Stop the loading animation
-    loading_animation_running = False
-    loading_thread.join()
+        # Stop the loading animation
+        loading_animation_running = False
+        loading_thread.join()
 
-    elapsed_time = (datetime.now() - script_timer).total_seconds()
-    formatted_time = format_time(elapsed_time)
-    print(f'\n\nTotal running time: {formatted_time}\n\nBackups created: {backups_created}\nFolders checked: {folders_checked}\n')
+        elapsed_time = (datetime.now() - script_timer).total_seconds()
+        formatted_time = format_time(elapsed_time)
+        print(f'\n\nTotal running time: {formatted_time}\n\nBackups created: {backups_created}\nFolders checked: {folders_checked}\n')
 
 main()

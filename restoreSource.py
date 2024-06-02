@@ -8,7 +8,8 @@ import csv
 import zipfile
 import filecmp
 import shutil
-
+import threading
+import time
 
 backups_combined = 0
 
@@ -283,6 +284,10 @@ def restore_time_capsule(source_dir, date):
                 with zipfile.ZipFile(path_to_restore, 'r') as zip_ref:
                     # Extract all the contents of the zip file to the target directory
                     zip_ref.extractall(recover_full_path)
+                
+                # Increment backups_combined
+                backups_combined += 1
+
             except zipfile.BadZipFile:
                 print(f'The file {path_to_restore} is not a valid zip archive.')
             except FileNotFoundError:
@@ -311,54 +316,6 @@ def add_files_from_folder_to_zip(zip_file_path, source_folder):
             # The arcname parameter allows you to specify the path within the zip file
             zipf.write(file_path, os.path.relpath(file_path, source_folder))
 
-def create_backup_for_folders(source_dir):
-    source_folder_name = os.path.basename(source_dir)
-    backup_folder_name = source_folder_name
-    backup_folder_path = os.path.join(config_data['backup_directory'], backup_folder_name)
-    def _create_backup_for_current_folder(current_folder):
-        global backups_created
-        global folders_checked
-        # Get the extra layers in path
-        layers_path = current_folder
-        layers_path = layers_path.replace(source_dir, '')
-        
-        # # Build path and create backup
-        backup_subfolder = f'{backup_folder_path}{layers_path}'
-        source_folder_name = current_folder.split('\\')[-1]
-
-        # # Check if a backup is needed for the current folder
-        needed_backup = is_backup_needed(current_folder, backup_subfolder)
-
-        # Create backup if changes were made
-        if needed_backup:
-            # Get zip file name and path
-            zip_file_name = f'Backup {source_folder_name} {backup_timestamp}.zip'
-            zip_file_path = rf'{backup_subfolder}\{zip_file_name}'
-            
-            # Create a zipfile backup for the files in the folder only
-            backups_created += 1
-            folders_checked += 1
-            # print(f'Creating backup for file in: {current_folder}. Zip location: {zip_file_path}')
-            add_files_from_folder_to_zip(zip_file_path, current_folder)
-        else: 
-            folders_checked += 1
-            # print(f'No backup needed for {source_folder_name}')
-    
-    # Create backup for main source_dir
-    _create_backup_for_current_folder(source_dir)
-
-    # Cycle through all subfolders of source_dir and create backups
-    def cycle_through_subfolders(folder_path):
-        for source_subfolder in list_files_without_hidden(folder_path):
-            full_source_subfolder_path = os.path.join(folder_path,source_subfolder)
-            if not os.path.isfile(full_source_subfolder_path):
-                _create_backup_for_current_folder(full_source_subfolder_path)
-
-                # Go one level deeper
-                cycle_through_subfolders(full_source_subfolder_path)
-
-    cycle_through_subfolders(source_dir)
-
 def delete_folder_content(directory):
     try:
         for item in os.listdir(directory):
@@ -372,14 +329,47 @@ def delete_folder_content(directory):
     except Exception as e:
         print(f'An error occurred: {str(e)}')
 
+def loading_animation():
+    num_dots = 0
+    while loading_animation_running:
+        sys.stdout.write("\rSearching and creating backups" + "." * num_dots + "   ")
+        sys.stdout.flush()
+        time.sleep(0.5)
+        num_dots = (num_dots + 1) % 4
+
+def format_time(seconds):
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{int(hours)} hours {int(minutes)} minutes {int(seconds)} seconds"
+
+# Global variable to indicate whether the loading animation should continue
+loading_animation_running = True
+
 def main():
+    global loading_animation_running
+    script_timer = datetime.now()
+
     # Clean the recovery folder
     delete_folder_content(config_data['recover_directory'])
 
     restore_path, date = prompt_user_for_data()
-    # restore_path, date = 'D:\Backups\Images and Videos', '25 September 2023'
-    restore_time_capsule(restore_path, date)
     
+    # Start the loading animation in a separate thread
+    loading_thread = threading.Thread(target=loading_animation)
+    loading_thread.start()
+
+    restore_time_capsule(restore_path, date)
+
+    # Stop the loading animation
+    loading_animation_running = False
+    loading_thread.join()
+
+    # Get total computing time
+    elapsed_time = (datetime.now() - script_timer).total_seconds()
+    formatted_time = format_time(elapsed_time)
+
+    # Print detailed message
+    print(f'\n\nTotal running time: {formatted_time}\n\nCombined archives: {backups_combined}\n')
     print(f'\nPlease find your recoved file in the folder: {config_data["recover_directory"]}.\nThe folder should be moved to another location, as the scripts cleans the Recovery folder to avoid conflicts.\n')
 
 main()

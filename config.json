@@ -7,5 +7,5 @@
     "backup_directory": "E:\\Backups database\\Backups",
     "recover_directory": "E:\\Backups database\\Recovery",
     "history_log": "E:\\Backups database\\Backups\\backup_history_log.csv",
-    "max_backups": 3
+    "max_backups": 5
 }
